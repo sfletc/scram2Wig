@@ -10,6 +10,7 @@ import (
 	"strconv"
 	"strings"
 	"sync"
+	"bufio"
 )
 
 var mu sync.Mutex
@@ -104,18 +105,18 @@ type Result struct {
 // It returns the slice of strings.
 func prepareDataForWriting(header string, result Result) []string {
 	var lines []string
-	lines = append(lines, fmt.Sprintf("variableStep chrom=%s\n", header))
+	lines = append(lines, fmt.Sprintf("variableStep chrom=%s", header))
 	pos := 1
 
 	for _, value := range result.Data {
 		if value > 0.0 {
-			lines = append(lines, fmt.Sprintf("%d %f\n", pos, value))
+			lines = append(lines, fmt.Sprintf("%d %f", pos, value))
 		}
 		pos++
-
 	}
 	return lines
 }
+
 
 // writeWig writes a slice of lines to a WIG file.
 // It takes the output file path and the slice of lines as parameters.
@@ -128,9 +129,15 @@ func writeWig(outWig string, lines []string) {
 	file, _ := os.OpenFile(outWig, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
 	defer file.Close()
 
+	// Create a new Writer
+	w := bufio.NewWriter(file)
+
 	for _, line := range lines {
-		_, _ = file.WriteString(line)
+		_, _ = w.WriteString(line + "\n")
 	}
+
+	// Don't forget to flush!
+	w.Flush()
 }
 
 // handleFlags handles the command line flags and returns the flag values.
